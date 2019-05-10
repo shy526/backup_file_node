@@ -22,7 +22,7 @@ const run = function () {
         backup = JSON.parse(buffer.toString());
         try {
             if (!Array.isArray(backup.backupFiles) || !backup.local
-            ||!backup.userName||!backup.repo||!backup.token) {
+                || !backup.userName || !backup.repo || !backup.token) {
                 configBanner(backup)
                 return
             }
@@ -50,21 +50,22 @@ const run = function () {
         console.log(chalk.red(`没有该文件:${configPath}`));
         return;
     }
-    backup.backupFiles.forEach(item=>{
-        item["local"]=backup.local
-        item["token"]=backup.token
-        item["userName"]=backup.userName
-        item["repo"]=backup.repo
+    backup.backupFiles.forEach(item => {
+        item["local"] = backup.local
+        item["token"] = backup.token
+        item["userName"] = backup.userName
+        item["repo"] = backup.repo
     })
-    let second=1000 * 60
+    let second = 1000 * 60
     addListener(backup.backupFiles)
     setInterval(() => {
         backup.backupFiles.forEach(item => {
-            backupFile(item, "time",true)
+            backupFile(item, "time", true)
         })
 
-    },second*30)
+    }, second * 30)
 }();
+
 function addListener(backFiles) {
     if (backFiles && Array.isArray(backFiles)) {
         backFiles.forEach(item => {
@@ -73,15 +74,19 @@ function addListener(backFiles) {
                     //不监听改名事件
                     return;
                 }
-                item.backupTime = new Date().getTime();
-                backupFile(item, "watch",true)
+                let nowTime = new Date().getTime();
+                if ((nowTime - item.backupTime) > 2000 || item.backupTime < 0) {
+                    item.backupTime = nowTime
+                    backupFile(item, "watch", true)
+                }
+
             })
         })
     }
 }
 
 
-function backupFile(item, stamp,putRepoFlag) {
+function backupFile(item, stamp, putRepoFlag) {
     let backupPath = item.path;
     let targetPath = path.join(item.local, item.name, stamp)
     if (fs.existsSync(backupPath)) {
@@ -93,12 +98,22 @@ function backupFile(item, stamp,putRepoFlag) {
         let nowTime = new Date().toLocaleString().replace(/:/g, "-");
         let zipName = `${pathParse.name}-${nowTime}-${stamp}.zip`;
         let outZip = path.join(targetPath, zipName);
-        zip.sync.zip(backupPath).compress().save(outZip);
-        deleteBackupOut(targetPath)
-        if (putRepoFlag){
-            putRepo(item,path.join(item.name,stamp,zipName),outZip)
+
+        try {
+            if (fs.existsSync(outZip)) {
+                return;
+            }
+            zip.sync.zip(backupPath).compress().save(outZip);
+        } catch (e) {
+            console.log("打包失败:" + backupPath + "====>" + outZip)
+            return
         }
-        console.log(backupPath + "====>" + outZip)
+
+        deleteBackupOut(targetPath)
+        if (putRepoFlag) {
+            putRepo(item, path.join(item.name, stamp, zipName), outZip)
+        }
+        console.log("打包成功:" + backupPath + "====>" + outZip)
     } else {
         console.log(`文件不存在:${backupPath}`)
     }
@@ -165,29 +180,31 @@ function configBanner2(messsage) {
 }
 
 
-function putRepo(item,cpath,localPath) {
-    cpath=encodeURI(cpath.replace(/\\/g,"/"))
+function putRepo(item, cpath, localPath) {
+    cpath = encodeURI(cpath.replace(/\\/g, "/"))
     let option = {
         hostname: 'api.github.com',
         path: `/repos/${item.userName}/${item.repo}/contents/${cpath}`,
         headers: {
             'Authorization': `token ${item.token}`,
             "User-Agent": "backup"
-             },
+        },
         method: 'PUT',
-       };
+    };
     const req = https.request(option, (res) => {
-        if (res.statusCode==201){
+        if (res.statusCode == 201) {
             console.log(`${localPath} ====> https://${option.hostname}${option.path}`)
         }
     }).on('error', (e) => {
         console.error(e);
     })
     let data = fs.readFileSync(localPath);
-    let body = {"message": `backupFile ${cpath}`,
-        "content": data.toString('base64')};
+    let body = {
+        "message": `backupFile ${cpath}`,
+        "content": data.toString('base64')
+    };
     req.write(JSON.stringify(body))
-        req.end();
+    req.end();
 
 }
 
