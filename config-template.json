@@ -2,10 +2,11 @@
   "backupFiles": [
     {
       "name": "测试",
-      "path": "C:\\Users\\admin\\WebstormProjects\\backup_file\\demo\\text.txt",
+      "path": "C:\\Users\\admin\\WebstormProjects\\backup_file\\demo",
       "backupTime": -1
     }
   ],
+  "listener":false,
   "local": "C:\\Users\\admin\\WebstormProjects\\backup_file",
   "token": "",
   "userName": "sunjiaqing",

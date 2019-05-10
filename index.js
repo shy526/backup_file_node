@@ -57,7 +57,11 @@ const run = function () {
         item["repo"] = backup.repo
     })
     let second = 1000 * 60
-    addListener(backup.backupFiles)
+    if (backup.listener){
+        console.log("开启监控-------")
+        addListener(backup.backupFiles)
+    }
+
     setInterval(() => {
         backup.backupFiles.forEach(item => {
             backupFile(item, "time", true)
@@ -75,7 +79,7 @@ function addListener(backFiles) {
                     return;
                 }
                 let nowTime = new Date().getTime();
-                if ((nowTime - item.backupTime) > 2000 || item.backupTime < 0) {
+                if ((nowTime - item.backupTime) > 5000 || item.backupTime < 0) {
                     item.backupTime = nowTime
                     backupFile(item, "watch", true)
                 }
